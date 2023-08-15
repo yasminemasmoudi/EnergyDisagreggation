@@ -4,7 +4,7 @@ FROM frolvlad/alpine-python-machinelearning:latest
 RUN pip install --upgrade pip
 
 WORKDIR /app
-
+RUN apk add --no-cache git
 COPY . /app
 
 RUN apk add build-base
