@@ -1,0 +1,15 @@
+artifact_uri: mlflow-artifacts:/0/8211a5d4410645ea974e14d9821f5b75/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 8211a5d4410645ea974e14d9821f5b75
+run_name: sedate-boar-709
+run_uuid: 8211a5d4410645ea974e14d9821f5b75
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1692143423478
+status: 1
+tags: []
+user_id: yesmi
