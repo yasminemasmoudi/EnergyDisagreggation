@@ -1,4 +1,4 @@
-FROM frolvlad/alpine-python-machinelearning:latest
+FROM alpine:3.14
 #Alpine Linux-based image with Python and machine learning libraries pre-installed
 
 RUN pip install --upgrade pip
