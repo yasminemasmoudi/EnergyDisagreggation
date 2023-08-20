@@ -1,0 +1,19 @@
+artifact_path: dishwaser_6_model
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.8.16
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.2.2
+mlflow_version: 2.5.0
+model_uuid: c64f102ef5634778a7850c73ce2c03bf
+run_id: 334dc4608f504985b5ed5774e71105e7
+utc_time_created: '2023-08-17 23:37:43.903974'

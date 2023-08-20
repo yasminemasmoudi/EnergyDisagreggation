@@ -1,0 +1,19 @@
+artifact_path: kitchen_outlets_7_model
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.8.16
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.2.2
+mlflow_version: 2.5.0
+model_uuid: 97ad9226e83b48f3a2e411fd18c43d45
+run_id: 35330982e1604d09b408b8c2cd15c9c4
+utc_time_created: '2023-08-20 15:59:27.307700'

@@ -1,0 +1,19 @@
+artifact_path: oven_3_model
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.8.16
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.2.2
+mlflow_version: 2.5.0
+model_uuid: 9bacb84ffb2d47edbac6d0d3e8aeaf30
+run_id: 55691a7d9b554cdca64309a8d2d29cce
+utc_time_created: '2023-08-17 18:41:57.535732'

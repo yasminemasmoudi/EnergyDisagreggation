@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 from IPython.display import display
 import datetime
 import time
@@ -9,6 +11,8 @@ import warnings
 warnings.filterwarnings("ignore")
 import glob
 import mlflow
+import prefect 
+from prefect import task, flow
 
 
 mlflow.set_tracking_uri("http://localhost:5000")
@@ -16,6 +20,7 @@ experiment_name = "experiment_tracking_1"
 run_name="SFM"
 
 
+@task
 def read_label(): #read house 1 and 2 labels
     label = {}
     for i in range(1, 3):
@@ -26,11 +31,11 @@ def read_label(): #read house 1 and 2 labels
                 splitted_line = line.split(' ')
                 label[i][int(splitted_line[0])] = splitted_line[1].strip() + '_' + splitted_line[0]
     return label
-labels = read_label()
-for i in range(1,3):
-    print('House {}: '.format(i), labels[i], '\n')
 
-def read_merge_data(house): #load watt data in pandas data frame in format of labels as columns and timestamps as rows    
+
+
+@task
+def read_merge_data(house,labels): #load watt data in pandas data frame in format of labels as columns and timestamps as rows    
 
     path = 'low_freq/house_{}/'.format(house)
 
@@ -48,23 +53,10 @@ def read_merge_data(house): #load watt data in pandas data frame in format of la
     df = df.set_index(df['timestamp'].values)
     df.drop(['unix_time','timestamp'], axis=1, inplace=True)
     return df
-df = {}
-for i in range(1,3):
-    df[i] = read_merge_data(i)
 
-for i in range(1,3):
-    print('House {} data has shape: '.format(i), df[i].shape)
-    display(df[i].tail(3))
-
-#show the days of house 1 and house 2
-dates = {}
-for i in range(1,3):
-    dates[i] = [str(time)[:10] for time in df[i].index.values]
-    dates[i] = sorted(list(set(dates[i])))
-    print('House {0} data contain {1} days from {2} to {3}.'.format(i,len(dates[i]),dates[i][0], dates[i][-1]))
-    print(dates[i], '\n')
 
 # Plot 2 first day data of house 1 and 2
+@task
 def plot_df(df, title):
     apps = df.columns.values
     num_apps = len(apps) 
@@ -77,81 +69,15 @@ def plot_df(df, title):
     fig.subplots_adjust(top=0.95)
     plt.savefig('figures/{}_{}.png'.format(title.replace(" ", "_"), i))
 
-
-for i in range(1,3):
-    plot_df(df[i][:dates[i][1]], 'First 2 day data of house {}'.format(i))
-
-# Plot total energy consumption of each appliance from two houses
-fig, axes = plt.subplots(1,2,figsize=(24, 10))
-plt.suptitle('Total energy consumption of each appliance', fontsize = 30)
-cons1 = df[1][df[1].columns.values[2:]].sum().sort_values(ascending=False)
-app1 = cons1.index
-y_pos1 = np.arange(len(app1))
-axes[0].bar(y_pos1, cons1.values,  alpha=0.6) 
-plt.sca(axes[0])
-plt.xticks(y_pos1, app1, rotation = 45)
-plt.title('House 1')
-
-cons2 = df[2][df[2].columns.values[2:]].sum().sort_values(ascending=False)
-app2 = cons2.index
-y_pos2 = np.arange(len(app2))
-axes[1].bar(y_pos2, cons2.values, alpha=0.6)
-plt.sca(axes[1])
-plt.xticks(y_pos2, app2, rotation = 45)
-plt.title('House 2')
-
-# Separate house 1 data into train, validation and test data
-df1_train = df[1][:dates[1][10]]
-df1_val = df[1][dates[1][11]:dates[1][16]]
-df1_test = df[1][dates[1][17]:]
-print('df_train.shape: ', df1_train.shape)
-print('df_val.shape: ', df1_val.shape)
-print('df_test.shape: ', df1_test.shape)
-
-# data for oven_3
-
-# Using mains_1, mains_2 to predict oven_3
-X_train1 = df1_train[['mains_1','mains_2']].values 
-y_train1 = df1_train['oven_3'].values
-X_val1 = df1_val[['mains_1','mains_2']].values
-y_val1 = df1_val['oven_3'].values
-X_test1 = df1_test[['mains_1','mains_2']].values
-y_test1 = df1_test['oven_3'].values
-print(X_train1.shape, y_train1.shape, X_val1.shape, y_val1.shape, X_test1.shape, y_test1.shape)
-
-#data for refrigerator_5
-
-# Using mains_1, mains_2 to predict refrigerator_5
-X_train2 = df1_train[['mains_1','mains_2']].values 
-y_train2 = df1_train['refrigerator_5'].values
-X_val2 = df1_val[['mains_1','mains_2']].values
-y_val2 = df1_val['refrigerator_5'].values
-X_test2 = df1_test[['mains_1','mains_2']].values
-y_test2 = df1_test['refrigerator_5'].values
-print(X_train2.shape, y_train2.shape, X_val2.shape, y_val2.shape, X_test2.shape, y_test2.shape)
-
-#data for kitchen_outlets_7
-
-# Using mains_1, mains_2 to predict kitchen_outlets_7
-X_train3 = df1_train[['mains_1','mains_2']].values 
-y_train3 = df1_train['kitchen_outlets_7'].values
-X_val3 = df1_val[['mains_1','mains_2']].values
-y_val3 = df1_val['kitchen_outlets_7'].values
-X_test3 = df1_test[['mains_1','mains_2']].values
-y_test3 = df1_test['kitchen_outlets_7'].values
-print(X_train3.shape, y_train3.shape, X_val3.shape, y_val3.shape, X_test3.shape, y_test3.shape)
-
-
-# data for dishwaser_6
-
-# Using mains_1, mains_2 to predict kitchen_outlets_7
-X_train4 = df1_train[['mains_1','mains_2']].values 
-y_train4 = df1_train['dishwaser_6'].values
-X_val4 = df1_val[['mains_1','mains_2']].values
-y_val4 = df1_val['dishwaser_6'].values
-X_test4 = df1_test[['mains_1','mains_2']].values
-y_test4 = df1_test['dishwaser_6'].values
-print(X_train4.shape, y_train4.shape, X_val4.shape, y_val4.shape, X_test4.shape, y_test4.shape)
+@task
+def train(df,dates):
+    return df[1][:dates[1][10]]
+@task
+def val(df,dates):
+    return df[1][dates[1][11]:dates[1][16]]
+@task
+def test(df,dates):
+    return df[1][dates[1][17]:]
 
 
 from keras.layers.core import Dense, Activation, Dropout
@@ -189,6 +115,7 @@ def mae_loss(y_predict, y):
 
 
 #rnndisagreggator
+@task
 def build_fc_model():
     fc_model = Sequential()
     fc_model.add(Conv1D(16, 4, activation="linear", input_shape=(2,1), padding="same", strides=1))
@@ -205,7 +132,23 @@ def build_fc_model():
     return fc_model
 
 
+@task 
+def train_model(path,model,X_train,y_train):
+    # Start an MLflow run
+    with mlflow.start_run():
+        lr = 1e-5
+        mlflow.log_param("Learning Rate", lr)
+        adam = Adam(lr)
+        epochs = 200
+        mlflow.log_param("epochs", epochs)
+        model.compile(loss='mean_squared_error', optimizer=adam, metrics=['accuracy', f1_m, precision_m, recall_m])
+        start = time.time()
+        checkpointer = ModelCheckpoint(filepath=path, verbose=0, save_best_only=True)
+        hist = model.fit(X_train, y_train, batch_size=512, verbose=1, epochs=epochs, validation_split=0.33, callbacks=[checkpointer])
+        return hist
+
 # Plot real and predict appliance's consumption on six days of test data
+@task
 def plot_each_app(df, dates, predict, y_test, title, look_back = 0):
     num_date = len(dates)
     fig, axes = plt.subplots(num_date,1,figsize=(24, num_date*5) )
@@ -221,7 +164,7 @@ def plot_each_app(df, dates, predict, y_test, title, look_back = 0):
         l = len(ind)
         plt.savefig('figures/{}_{}.png'.format(title.replace(" ", "_"), i))
 
-
+@task
 def plot_losses(train_loss, val_loss):
     plt.rcParams["figure.figsize"] = [24,10]
     plt.title('Mean squared error of train and val set on house 1')
@@ -231,27 +174,112 @@ def plot_losses(train_loss, val_loss):
     plt.ylabel( 'loss' )
     plt.legend()
 
-# DISHWASHER 6 TRAINING
 
-model_4 = build_fc_model()
+@flow(name="dishwasher main flow")
+def main():
+    labels = read_label()
+    for i in range(1,3):
+        print('House {}: '.format(i), labels[i], '\n')
 
-# Start an MLflow run
-with mlflow.start_run():
-    lr = 1e-5
-    mlflow.log_param("Learning Rate", lr)
-    adam = Adam(lr)
-    epochs = 200
-    mlflow.log_param("epochs", epochs)
+    df = {}
+    for i in range(1,3):
+        df[i] = read_merge_data(i,labels)
 
-    model_4.compile(loss='mean_squared_error', optimizer=adam, metrics=['accuracy', f1_m, precision_m, recall_m])
-    start = time.time()
+    for i in range(1,3):
+        print('House {} data has shape: '.format(i), df[i].shape)
+        display(df[i].tail(3))
 
-    checkpointer = ModelCheckpoint(filepath="models/dishwaser_6_h1_2.hdf5", verbose=0, save_best_only=True)
+    #show the days of house 1 and house 2
+    dates = {}
+    for i in range(1,3):
+        dates[i] = [str(time)[:10] for time in df[i].index.values]
+        dates[i] = sorted(list(set(dates[i])))
+        print('House {0} data contain {1} days from {2} to {3}.'.format(i,len(dates[i]),dates[i][0], dates[i][-1]))
+        print(dates[i], '\n')
 
-    hist_4 = model_4.fit(X_train4, y_train4, batch_size=512, verbose=1, epochs=epochs, validation_split=0.33, callbacks=[checkpointer])
+    for i in range(1,3):
+        plot_df(df[i][:dates[i][1]], 'First 2 day data of house {}'.format(i))
 
-    loss, accuracy, f1_score, precision, recall = model_3.evaluate(X_test4, y_test4, verbose=0)
-    print('Finish training. Time: ', time.time() - start)
+
+    # Plot total energy consumption of each appliance from two houses
+    fig, axes = plt.subplots(1,2,figsize=(24, 10))
+    plt.suptitle('Total energy consumption of each appliance', fontsize = 30)
+    cons1 = df[1][df[1].columns.values[2:]].sum().sort_values(ascending=False)
+    app1 = cons1.index
+    y_pos1 = np.arange(len(app1))
+    axes[0].bar(y_pos1, cons1.values,  alpha=0.6) 
+    plt.sca(axes[0])
+    plt.xticks(y_pos1, app1, rotation = 45)
+    plt.title('House 1')
+
+    cons2 = df[2][df[2].columns.values[2:]].sum().sort_values(ascending=False)
+    app2 = cons2.index
+    y_pos2 = np.arange(len(app2))
+    axes[1].bar(y_pos2, cons2.values, alpha=0.6)
+    plt.sca(axes[1])
+    plt.xticks(y_pos2, app2, rotation = 45)
+    plt.title('House 2')
+
+    # Separate house 1 data into train, validation and test data
+    df1_train = train(df,dates)
+    df1_val = val(df,dates)
+    df1_test = test(df,dates)
+    print('df_train.shape: ', df1_train.shape)
+    print('df_val.shape: ', df1_val.shape)
+    print('df_test.shape: ', df1_test.shape)
+
+    # data for oven_3
+
+    # Using mains_1, mains_2 to predict oven_3
+    X_train1 = df1_train[['mains_1','mains_2']].values 
+    y_train1 = df1_train['oven_3'].values
+    X_val1 = df1_val[['mains_1','mains_2']].values
+    y_val1 = df1_val['oven_3'].values
+    X_test1 = df1_test[['mains_1','mains_2']].values
+    y_test1 = df1_test['oven_3'].values
+    print(X_train1.shape, y_train1.shape, X_val1.shape, y_val1.shape, X_test1.shape, y_test1.shape)
+
+    #data for refrigerator_5
+
+    # Using mains_1, mains_2 to predict refrigerator_5
+    X_train2 = df1_train[['mains_1','mains_2']].values 
+    y_train2 = df1_train['refrigerator_5'].values
+    X_val2 = df1_val[['mains_1','mains_2']].values
+    y_val2 = df1_val['refrigerator_5'].values
+    X_test2 = df1_test[['mains_1','mains_2']].values
+    y_test2 = df1_test['refrigerator_5'].values
+    print(X_train2.shape, y_train2.shape, X_val2.shape, y_val2.shape, X_test2.shape, y_test2.shape)
+
+    #data for kitchen_outlets_7
+
+    # Using mains_1, mains_2 to predict kitchen_outlets_7
+    X_train3 = df1_train[['mains_1','mains_2']].values 
+    y_train3 = df1_train['kitchen_outlets_7'].values
+    X_val3 = df1_val[['mains_1','mains_2']].values
+    y_val3 = df1_val['kitchen_outlets_7'].values
+    X_test3 = df1_test[['mains_1','mains_2']].values
+    y_test3 = df1_test['kitchen_outlets_7'].values
+    print(X_train3.shape, y_train3.shape, X_val3.shape, y_val3.shape, X_test3.shape, y_test3.shape)
+
+
+    # data for dishwaser_6
+
+    # Using mains_1, mains_2 to predict kitchen_outlets_7
+    X_train4 = df1_train[['mains_1','mains_2']].values 
+    y_train4 = df1_train['dishwaser_6'].values
+    X_val4 = df1_val[['mains_1','mains_2']].values
+    y_val4 = df1_val['dishwaser_6'].values
+    X_test4 = df1_test[['mains_1','mains_2']].values
+    y_test4 = df1_test['dishwaser_6'].values
+    print(X_train4.shape, y_train4.shape, X_val4.shape, y_val4.shape, X_test4.shape, y_test4.shape)
+
+
+    
+    # TRAINING
+    model_4 = build_fc_model()
+    hist_4 = train_model("models/dishwaser_6_h1_2.hdf5",model_4,X_train4,y_train4)
+
+    loss, accuracy, f1_score, precision, recall = model_4.evaluate(X_test4, y_test4, verbose=0)
 
     mlflow.log_metric("loss", loss)
     mlflow.log_metric("accuracy", accuracy)
@@ -268,25 +296,26 @@ with mlflow.start_run():
     mlflow.log_metric("mse_loss_4", mse_loss_4)
     mlflow.log_metric("mae_loss_4", mae_loss_4)
 
-    mlflow.log_artifact(local_path="models/dishwaser_6_h1_2.hdf5", artifact_path="models_pickle")
     mlflow.sklearn.log_model(model_4, "dishwaser_6_model")
 
+    train_loss = hist_4.history['loss']
+    val_loss = hist_4.history['val_loss']
 
-train_loss = hist_4.history['loss']
-val_loss = hist_4.history['val_loss']
-def plot_losses(train_loss, val_loss):
-    plt.rcParams["figure.figsize"] = [24,10]
-    plt.title('Mean squared error of train and val set on house 1')
-    plt.plot( range(len(train_loss)), train_loss, color = 'g', alpha = 0.6, label='train_loss' )
-    plt.plot( range(len( val_loss )), val_loss, color = 'r', alpha = 0.6, label='val_loss' )
-    plt.xlabel( 'epoch' )
-    plt.ylabel( 'loss' )
-    plt.legend()
+    plot_losses(train_loss, val_loss)
 
-plot_losses(train_loss, val_loss)
-
-plot_each_app(df1_test, dates[1][17:], pred_4, y_test4, 
+    plot_each_app(df1_test, dates[1][17:], pred_4, y_test4, 
             'FC model: real and predict dishwasher on 6 test day of house 1', look_back = 50)
+
+if __name__ == '__main__':
+    main()
+    
+
+
+    
+
+
+
+
 
 
 
