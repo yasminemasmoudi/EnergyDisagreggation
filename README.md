@@ -16,3 +16,6 @@ Prerequisites:
 In the same repo directory, run `mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./artifacts --host 0.0.0.0 --port 5000 `
 UI is accessible at http://localhost:5000/
 
+## Run Prefect UI:
+In the same repo directory, run `prefect orion start`
+UI is accessible at http://localhost:4200/
