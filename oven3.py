@@ -33,7 +33,6 @@ def read_label(): #read house 1 and 2 labels
     return label
 
 
-
 @task
 def read_merge_data(house,labels): #load watt data in pandas data frame in format of labels as columns and timestamps as rows    
 
